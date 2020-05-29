@@ -2,6 +2,7 @@ package com.lhs.flink.jobs.comprehensive;
 
 import com.lhs.flink.jobs.comprehensive.utils.SchedulerUtils;
 import org.apache.flink.api.common.time.Time;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.environment.CheckpointConfig;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.table.api.EnvironmentSettings;
@@ -24,12 +25,15 @@ public class JobMain {
 
         TableEnvironment tableEnvironment = StreamTableEnvironment.create(environment,settings);
 
+        Configuration configuration = tableEnvironment.getConfig().getConfiguration();
+
         tableEnvironment.getConfig().setIdleStateRetentionTime(Time.seconds(10),Time.seconds(320));;
 
+        tableEnvironment.getConfig().getConfiguration().setString("table.exec.mini-batch.enabled","true");
+        tableEnvironment.getConfig().getConfiguration().setString("table.exec.mini-batch.allow-latency","60000 ms");
+        tableEnvironment.getConfig().getConfiguration().setString("table.exec.mini-batch.size","100000000");
+
         SchedulerUtils.setFlinkInitJobs(tableEnvironment);
-
-        SchedulerUtils.setFlinkJobs(tableEnvironment);
-
         tableEnvironment.execute("running jobs");
     }
 
