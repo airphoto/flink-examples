@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.lhs.flink.dao.LogConfigMapper;
 import com.lhs.flink.dao.MybatisSessionFactory;
 import com.lhs.flink.pojo.LogConfig;
+import com.lhs.flink.utils.LogConfigUtils;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.source.RichSourceFunction;
 import org.apache.ibatis.session.SqlSession;
@@ -47,7 +48,7 @@ public class LogConfigSource extends RichSourceFunction<Map<String,String>> {
                 List<LogConfig> logConfigs = mapper.queryLogConfig();
                 Map<String, String> map = new HashMap<>();
 
-                map.put("log_config", getSchemaJson(logConfigs));
+                map.put("log_config", LogConfigUtils.getSchemaJson(logConfigs));
 
                 sourceContext.collect(map);
 
@@ -67,27 +68,4 @@ public class LogConfigSource extends RichSourceFunction<Map<String,String>> {
         this.running = false;
         logger.info("running is false and sqlSession is closed");
     }
-
-    private String getSchemaJson(List<LogConfig> logConfigs){
-        System.out.println(JSONObject.toJSONString(logConfigs));
-        return JSONObject.toJSONString(logConfigs);
-    }
-
-//    private void setBroadConfigs(List<LogConfig> logConfigs,BroadConfig broadConfigs){
-//        Map<String,Schema> logSchema = new HashMap<>();
-//        Map<String,Map<String,Map<String,String>>> recoverAttributes = new HashMap<>();
-//        logConfigs.forEach(logConfig -> {
-//            Schema schema = logConfig.getLogSchemaValidator();
-//            if (schema!=null){
-//                logSchema.put(logConfig.getLogType(),schema);
-//                Map<String, Map<String, String>> logRecoverAttribute = logConfig.getLogRecoverAttribute();
-//                if(logRecoverAttribute!=null){
-//                    recoverAttributes.put(logConfig.getLogType(),logRecoverAttribute);
-//                }
-//            }
-//        });
-//
-//        broadConfigs.setRecoverAttributes(recoverAttributes);
-//        broadConfigs.setValidateSchemas(logSchema);
-//    }
 }

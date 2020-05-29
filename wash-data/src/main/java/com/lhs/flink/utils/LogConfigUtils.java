@@ -4,12 +4,15 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.lhs.flink.pojo.LogAttribute;
+import com.lhs.flink.pojo.LogConfig;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.flink.table.descriptors.Json;
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.loader.SchemaLoader;
 import org.json.JSONTokener;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -73,6 +76,17 @@ public class LogConfigUtils {
         }
 
         return functionKV;
+    }
+
+
+    public static String getSchemaJson(List<LogConfig> logConfigs){
+        String logConfigJson = null;
+        try{
+            logConfigJson = JSONObject.toJSONString(logConfigs);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return logConfigJson;
     }
 
     public static void main(String[] args) {
