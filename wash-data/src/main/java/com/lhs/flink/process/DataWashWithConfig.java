@@ -4,10 +4,10 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.lhs.flink.dao.LogConfigMapper;
 import com.lhs.flink.dao.MybatisSessionFactory;
+import com.lhs.flink.pojo.GaugeMonitor;
 import com.lhs.flink.pojo.LogConfig;
 import com.lhs.flink.utils.LogConfigUtils;
 import com.lhs.flink.utils.RecoveryData;
-import com.mysql.jdbc.log.LogUtils;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.co.BroadcastProcessFunction;
 import org.apache.flink.util.Collector;
@@ -28,6 +28,8 @@ import java.util.Map;
 public class DataWashWithConfig extends BroadcastProcessFunction<String,Map<String,String>,String>{
     private static final Logger logger = LoggerFactory.getLogger(DataWashWithConfig.class);
 
+    private transient Map<String, Integer> logMonitor;
+
     private String logConfigs;
     private Map<String,Schema> validateSchemas;
     private Map<String,Map<String,Map<String,String>>> recoverAttributes;
@@ -44,6 +46,8 @@ public class DataWashWithConfig extends BroadcastProcessFunction<String,Map<Stri
             this.logConfigs = LogConfigUtils.getSchemaJson(logConfigs);
             this.validateSchemas = LogConfigUtils.initSchema(this.logConfigs);
             this.recoverAttributes = LogConfigUtils.initRecoverAttris(this.logConfigs);
+            logMonitor = new HashMap<>();
+            getRuntimeContext().getMetricGroup().gauge("log_guage",new GaugeMonitor(logMonitor));
             logger.info("configs inited");
         }catch (Exception e){
             logger.error("init error",e);
@@ -56,7 +60,7 @@ public class DataWashWithConfig extends BroadcastProcessFunction<String,Map<Stri
 
     @Override
     public void processElement(String s, ReadOnlyContext readOnlyContext, Collector<String> collector) throws Exception {
-
+        // @TODO 统计每种类型的recover的数据
         int status = 0;
         JSONObject object = JSON.parseObject(s);
         String logType = object.getString("type");
@@ -68,7 +72,7 @@ public class DataWashWithConfig extends BroadcastProcessFunction<String,Map<Stri
                 logger.info("wash log data logtype = {}",logType);
             }catch (Exception e){
                 status = 4;
-                logger.error("wash log data logtype = {}",logType,e);
+                logger.error("wash log data logtype = {}",logType);
             }
         }
 
@@ -79,10 +83,10 @@ public class DataWashWithConfig extends BroadcastProcessFunction<String,Map<Stri
                 logger.info("validate log data logtype = {}",logType);
             }catch (Exception e){
                 status = 2;
-                logger.error("validate log data error logtype = {}",logType,e);
+                logger.error("validate log data error logtype = {}",logType);
             }
         }
-
+        this.logMonitor.put(logType,this.logMonitor.getOrDefault(logType,0)+1);
         collector.collect(status +" : "+ object.toString());
     }
 
@@ -91,5 +95,7 @@ public class DataWashWithConfig extends BroadcastProcessFunction<String,Map<Stri
         this.logConfigs = stringMapMap.get("log_config");
         this.validateSchemas = LogConfigUtils.initSchema(this.logConfigs);
         this.recoverAttributes = LogConfigUtils.initRecoverAttris(this.logConfigs);
+        // @TODO 将统计数据存储到redis
+        this.logMonitor.forEach((k,v)-> System.out.println(k+"->"+v));
     }
 }

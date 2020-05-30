@@ -9,6 +9,7 @@ import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.utils.ParameterTool;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.datastream.BroadcastStream;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
@@ -29,14 +30,16 @@ public class WashEntry {
 
         final ParameterTool parameterTool = ParameterTool.fromArgs(args);
 
-        String kafkaConsumeServers = parameterTool.get("kafka.consume.servers","10.122.238.97:9092");
-        String kafkaProduceServers = parameterTool.get("kafka.produce.servers","10.122.238.97:9092");
+        String kafkaConsumeServers = parameterTool.get("kafka.consume.servers","localhost:9092");
+        String kafkaProduceServers = parameterTool.get("kafka.produce.servers","localhost:9092");
         String groupId = parameterTool.get("kafka.group","wash_group");
         String[] consumeTopics = parameterTool.get("kafka.consume.topics", "original").split(",");
         String producerTopic = parameterTool.get("kafka.produce.topic", "wash");
-        long sleepMs = parameterTool.getLong("config.sleep.ms", 1000L);
+        long sleepMs = parameterTool.getLong("config.sleep.ms", 2000L);
 
-        StreamExecutionEnvironment environment = StreamExecutionEnvironment.getExecutionEnvironment();
+        Configuration configuration = new Configuration();
+
+        StreamExecutionEnvironment environment = StreamExecutionEnvironment.createLocalEnvironmentWithWebUI(configuration);
 
         Properties properties = new Properties();
         properties.put("bootstrap.servers",kafkaConsumeServers);
