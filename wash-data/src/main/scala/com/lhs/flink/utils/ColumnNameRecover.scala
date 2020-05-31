@@ -4,6 +4,7 @@ import com.alibaba.fastjson.{JSONArray, JSONObject}
 
 import scala.collection.mutable
 import ImplicitUtils._
+import com.lhs.flink.pojo.GaugeMonitor
 import org.slf4j.LoggerFactory
 /**
   * 文件名称：ColumnNameRecover
@@ -21,7 +22,7 @@ object ColumnNameRecover {
   /**
     * 修复列字段
     */
-  private[utils] def recoveryColumn(jsonObj: JSONObject, attributeConfigMap:mutable.Map[String, mutable.Map[String, mutable.Map[String, String]]],monitor:java.util.Map[String, Integer]): Unit = {
+  private[utils] def recoveryColumn(jsonObj: JSONObject, attributeConfigMap:mutable.Map[String, mutable.Map[String, mutable.Map[String, String]]],monitor:GaugeMonitor): Unit = {
     val typeValue = jsonObj.getString("type")
     val columnsMap = attributeConfigMap.get(typeValue)
     if (columnsMap.isDefined) {

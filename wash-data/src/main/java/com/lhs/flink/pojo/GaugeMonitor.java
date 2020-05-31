@@ -1,5 +1,6 @@
 package com.lhs.flink.pojo;
 
+import com.alibaba.fastjson.JSON;
 import org.apache.flink.metrics.Gauge;
 
 import java.util.Map;
@@ -24,7 +25,7 @@ public class GaugeMonitor implements Gauge<Map<String, Integer>> {
 
     @Override
     public Map<String, Integer> getValue() {
-        return null;
+        return this.getLogMonitor();
     }
 
     public Map<String, Integer> getLogMonitor() {
@@ -33,5 +34,10 @@ public class GaugeMonitor implements Gauge<Map<String, Integer>> {
 
     public void setLogMonitor(Map<String, Integer> logMonitor) {
         this.logMonitor = logMonitor;
+    }
+
+    @Override
+    public String toString() {
+        return JSON.toJSONString(this.getLogMonitor());
     }
 }

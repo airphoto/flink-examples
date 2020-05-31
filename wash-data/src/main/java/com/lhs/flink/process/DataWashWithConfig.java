@@ -36,7 +36,7 @@ import java.util.concurrent.TimeUnit;
 public class DataWashWithConfig extends BroadcastProcessFunction<String,Map<String,String>, Tuple2<String,String>>{
     private static final Logger logger = LoggerFactory.getLogger(DataWashWithConfig.class);
 
-    private transient Map<String, Integer> logMonitor;
+    private transient GaugeMonitor gaugeMonitor;
 
     /**
      * 每个日志配置的json串
@@ -86,8 +86,7 @@ public class DataWashWithConfig extends BroadcastProcessFunction<String,Map<Stri
             this.recoverAttributes = LogConfigUtils.initRecoverAttris(this.logConfigs);
             this.topicMap = LogConfigUtils.initSinkTopic(this.logConfigs);
 
-            logMonitor = ExpiringMap.builder().expiration(1, TimeUnit.DAYS).build();
-            getRuntimeContext().getMetricGroup().gauge("log_gauge",new GaugeMonitor(logMonitor));
+            this.gaugeMonitor = getRuntimeContext().getMetricGroup().gauge("log_gauge",new GaugeMonitor(ExpiringMap.builder().expiration(1, TimeUnit.DAYS).build()));
             logger.info("configs init");
         }catch (Exception e){
             logger.error("init error",e);
@@ -105,7 +104,7 @@ public class DataWashWithConfig extends BroadcastProcessFunction<String,Map<Stri
             String logType = object.getString("type");
             if (this.recoverAttributes != null && this.recoverAttributes.containsKey(logType)) {
                 try {
-                    RecoveryData.recoveryJsonByAttribute(object, this.recoverAttributes, logMonitor);
+                    RecoveryData.recoveryJsonByAttribute(object, this.recoverAttributes, gaugeMonitor);
                     logger.info("wash log data log type = {}", logType);
                 } catch (Exception e) {
                     logger.error("wash log data log type = {}", logType);
@@ -115,10 +114,10 @@ public class DataWashWithConfig extends BroadcastProcessFunction<String,Map<Stri
             if (this.validateSchemas != null && this.validateSchemas.containsKey(logType)) {
                 try {
                     this.validateSchemas.get(logType).validate(new org.json.JSONObject(object.toString()));
-                    MonitorUtils.normalInc(logType, this.logMonitor);
+                    MonitorUtils.normalInc(logType, this.gaugeMonitor);
                     logger.info("validate log data log type = {}", logType);
                 } catch (ValidationException e) {
-                    MonitorUtils.errorInc(logType, this.logMonitor, e.getAllMessages());
+                    MonitorUtils.errorInc(logType, this.gaugeMonitor, e.getAllMessages());
                     logger.error("validate log data error log type = {},error messages = {}", logType, e.getAllMessages());
                 }
             }
@@ -137,21 +136,13 @@ public class DataWashWithConfig extends BroadcastProcessFunction<String,Map<Stri
         this.recoverAttributes = LogConfigUtils.initRecoverAttris(this.logConfigs);
         this.topicMap = LogConfigUtils.initSinkTopic(this.logConfigs);
 
-
-        System.out.println(getRuntimeContext().getTaskNameWithSubtasks());
-        System.out.println(getRuntimeContext().getAttemptNumber());
-        System.out.println(getRuntimeContext().getTaskName());
-        System.out.println(getRuntimeContext().getIndexOfThisSubtask());
-        System.out.println(getRuntimeContext().getMaxNumberOfParallelSubtasks());
-
-
         Jedis jedis = null;
         Pipeline pipeline = null;
         try{
             jedis = RedisHelper.getJedis();
             pipeline = jedis.pipelined();
-            RedisHelper.saveMetricData(pipeline,this.logMonitor,getRuntimeContext().getTaskName());
-            logger.info("jedis db ["+jedis.getDB()+"] metric monitor ["+JSON.toJSONString(this.logMonitor)+"]");
+            RedisHelper.saveMetricData(pipeline,this.gaugeMonitor.getValue(),getRuntimeContext().getTaskName());
+            logger.info("jedis db ["+jedis.getDB()+"] metric monitor ["+JSON.toJSONString(this.gaugeMonitor.getValue())+"]");
         }catch (Exception e){
             logger.error("metric data save error",e);
         }finally {

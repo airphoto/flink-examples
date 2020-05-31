@@ -7,6 +7,7 @@ import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
 
 import scala.collection.mutable
 import ImplicitUtils._
+import com.lhs.flink.pojo.GaugeMonitor
 import org.slf4j.LoggerFactory
 
 object ColumnTypeRecover {
@@ -16,7 +17,7 @@ object ColumnTypeRecover {
   /**
     * 列类型修复
     */
-  private[utils] def recoveryColumnTypes(jsonObj: JSONObject, attributeConfigMap: mutable.Map[String, mutable.Map[String, mutable.Map[String, String]]],monitor:java.util.Map[String,Integer]): Unit = {
+  private[utils] def recoveryColumnTypes(jsonObj: JSONObject, attributeConfigMap: mutable.Map[String, mutable.Map[String, mutable.Map[String, String]]],monitor:GaugeMonitor): Unit = {
     val typeValue = jsonObj.getString("type")
     val columnsMap = attributeConfigMap.get(typeValue)
     val currentDay = System.currentTimeMillis().long2ShortDate

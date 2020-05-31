@@ -75,7 +75,7 @@ object RedisHelper extends Serializable {
     try{
       val metricKey = s"wash:metric:${System.currentTimeMillis().long2ShortDate}"
       metricData.foreach(kv => {
-        pipeline.hset(metricKey+":"+taskName,kv._1,kv._2.toString)
+        pipeline.hset(metricKey,kv._1,kv._2.toString)
         pipeline.expire(metricKey,3600 * 19)
       })
     }catch {

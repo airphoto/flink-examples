@@ -1,9 +1,9 @@
 package com.lhs.flink.utils
 
 import com.alibaba.fastjson.{JSON, JSONObject}
+import com.lhs.flink.pojo.GaugeMonitor
 
 import scala.collection.mutable
-
 import scala.collection.JavaConversions._
 
 object RecoveryData {
@@ -13,7 +13,7 @@ object RecoveryData {
     * @param jsonObj
     * @param attributeConfigMap
     */
-  def recoveryJsonByAttribute(jsonObj: JSONObject, attributeConfigMap: java.util.Map[String, java.util.Map[String, java.util.Map[String, String]]],monitor:java.util.Map[String, Integer]): Unit ={
+  def recoveryJsonByAttribute(jsonObj: JSONObject, attributeConfigMap: java.util.Map[String, java.util.Map[String, java.util.Map[String, String]]],monitor: GaugeMonitor): Unit ={
     val attrs = attributeConfigMap.map{case (logType,functionAttrs)=>
       val funcMap = functionAttrs.map{case (function,props)=> (function,props.map{case (k,v)=>(k,v)})}
 
@@ -29,7 +29,7 @@ object RecoveryData {
     * @param attributeConfigMap 配置文件
     * @return
     */
-  def recoveryJsonByAttribute(jsonObj: JSONObject, attributeConfigMap: mutable.Map[String, mutable.Map[String, mutable.Map[String, String]]],monitor:java.util.Map[String, Integer]) = {
+  def recoveryJsonByAttribute(jsonObj: JSONObject, attributeConfigMap: mutable.Map[String, mutable.Map[String, mutable.Map[String, String]]],monitor: GaugeMonitor) = {
     //列名修复
     ColumnNameRecover.recoveryColumn(jsonObj, attributeConfigMap,monitor)
     //列类型修复
