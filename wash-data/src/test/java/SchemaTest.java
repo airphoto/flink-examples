@@ -12,6 +12,5 @@ public class SchemaTest {
         SchemaLoader schemaLoader = SchemaLoader.builder().schemaJson(new JSONObject("")).build();
         Schema build = schemaLoader.load().build();
         build.validate(new JSONObject());
-
     }
 }

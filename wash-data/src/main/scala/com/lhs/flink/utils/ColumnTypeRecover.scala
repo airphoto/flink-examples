@@ -6,21 +6,37 @@ import java.util.Date
 import com.alibaba.fastjson.{JSON, JSONArray, JSONObject}
 
 import scala.collection.mutable
-import ImplicitUtils.StringUtils
+import ImplicitUtils._
+import org.slf4j.LoggerFactory
 
 object ColumnTypeRecover {
+
+  private val logger = LoggerFactory.getLogger("ColumnTypeRecover")
+
   /**
     * 列类型修复
     */
-  private[utils] def recoveryColumnTypes(jsonObj: JSONObject, attributeConfigMap: mutable.Map[String, mutable.Map[String, mutable.Map[String, String]]]): Unit = {
+  private[utils] def recoveryColumnTypes(jsonObj: JSONObject, attributeConfigMap: mutable.Map[String, mutable.Map[String, mutable.Map[String, String]]],monitor:java.util.Map[String,Integer]): Unit = {
     val typeValue = jsonObj.getString("type")
     val columnsMap = attributeConfigMap.get(typeValue)
+    val currentDay = System.currentTimeMillis().long2ShortDate
+
     if (columnsMap.isDefined) {
       val changeColumnTypeMap = columnsMap.get.get("change_column_type")
       if (changeColumnTypeMap.nonEmpty) {
         for (entry <- changeColumnTypeMap.get) {
           val array = entry._1.split("\\.")
-          repairColumnTypes(jsonObj, array, 0,typeValue,entry._2)
+          try {
+            repairColumnTypes(jsonObj, array, 0, typeValue, entry._2)
+            val key = s"change_column_type:pass:${typeValue}:${array.last.split(":")(0)}"
+            MonitorUtils.monitorInc(key,monitor)
+          }catch {
+            case e:Exception =>{
+              val key = s"change_column_type:error:${typeValue}:${array.last.split(":")(0)}"
+              MonitorUtils.monitorInc(key,monitor)
+              logger.error(s"${typeValue} recover column [${entry._1}] type error",e)
+            }
+          }
         }
       }
     }
@@ -75,15 +91,11 @@ object ColumnTypeRecover {
         if("".equals(strValue.trim)){
           val arrayValue = new JSONArray()
           json.put(key,arrayValue)
-          val message = "repair|"+jsonType+"|"+key+"|array"
-          //            acc.add(message)
         }else{
           val clName = value.getClass.toString
           if(!clName.endsWith("JSONArray")){
             val arrayValue = JSON.parseArray(strValue)
             json.put(key,arrayValue)
-            val message = "repair|"+jsonType+"|"+key+"|array"
-            //              acc.add(message)
           }
         }
       }catch {
@@ -97,8 +109,6 @@ object ColumnTypeRecover {
           }
           val arrayValue = JSON.parseArray(strNewValue)
           json.put(key,arrayValue)
-          val message = "repair|"+jsonType+"|"+key+"|array"
-        //            acc.add(message)
       }
     }
   }
@@ -116,7 +126,10 @@ object ColumnTypeRecover {
           case _ => // pass
         }
       }catch {
-        case _:Exception => json.remove(key)
+        case e:Exception => {
+          json.remove(key)
+          logger.error(s"log base type change [log=${jsonType} column=${key} change_type=${changeType}] error",e)
+        }
       }
     }
   }
@@ -145,7 +158,9 @@ object ColumnTypeRecover {
 
         if (timestr != "") json.put(key,timestr)
       }catch {
-        case _:Exception =>
+        case e:Exception =>{
+          logger.error(s"time recover error [log=${jsonType} time_column=${key}]",e)
+        }
       }
     }
   }

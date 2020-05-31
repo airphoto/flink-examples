@@ -13,13 +13,13 @@ object RecoveryData {
     * @param jsonObj
     * @param attributeConfigMap
     */
-  def recoveryJsonByAttribute(jsonObj: JSONObject, attributeConfigMap: java.util.Map[String, java.util.Map[String, java.util.Map[String, String]]]): Unit ={
+  def recoveryJsonByAttribute(jsonObj: JSONObject, attributeConfigMap: java.util.Map[String, java.util.Map[String, java.util.Map[String, String]]],monitor:java.util.Map[String, Integer]): Unit ={
     val attrs = attributeConfigMap.map{case (logType,functionAttrs)=>
       val funcMap = functionAttrs.map{case (function,props)=> (function,props.map{case (k,v)=>(k,v)})}
 
       (logType,funcMap)
     }
-    recoveryJsonByAttribute(jsonObj,attrs)
+    recoveryJsonByAttribute(jsonObj,attrs,monitor)
   }
 
   /**
@@ -29,11 +29,11 @@ object RecoveryData {
     * @param attributeConfigMap 配置文件
     * @return
     */
-  def recoveryJsonByAttribute(jsonObj: JSONObject, attributeConfigMap: mutable.Map[String, mutable.Map[String, mutable.Map[String, String]]]) = {
+  def recoveryJsonByAttribute(jsonObj: JSONObject, attributeConfigMap: mutable.Map[String, mutable.Map[String, mutable.Map[String, String]]],monitor:java.util.Map[String, Integer]) = {
     //列名修复
-    ColumnNameRecover.recoveryColumn(jsonObj, attributeConfigMap)
+    ColumnNameRecover.recoveryColumn(jsonObj, attributeConfigMap,monitor)
     //列类型修复
-    ColumnTypeRecover.recoveryColumnTypes(jsonObj, attributeConfigMap)
+    ColumnTypeRecover.recoveryColumnTypes(jsonObj, attributeConfigMap,monitor)
   }
 
   def main(args: Array[String]): Unit = {

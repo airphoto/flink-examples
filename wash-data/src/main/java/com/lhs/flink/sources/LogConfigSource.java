@@ -54,9 +54,9 @@ public class LogConfigSource extends RichSourceFunction<Map<String,String>> {
 
                 Thread.sleep(this.sleepMs);
 
-                logger.info("get log_config succes",running);
+                logger.info("get log configs succeed");
             }catch (Exception e){
-                logger.error("get log_config error",e);
+                logger.error("get log configs error",e);
             } finally {
                 MybatisSessionFactory.closeSession(sqlSession);
             }

@@ -10,6 +10,8 @@ import org.apache.flink.table.descriptors.Json;
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.loader.SchemaLoader;
 import org.json.JSONTokener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
@@ -21,41 +23,78 @@ import java.util.Map;
  * @create 2020/5/29
  **/
 public class LogConfigUtils {
+
+    private static final Logger logger = LoggerFactory.getLogger(LogConfigUtils.class);
+
+
     public static Map<String,Schema> initSchema(String logConfigs){
 
-        Map<String,Schema> schemaMap = new HashMap<>();
+        Map<String,Schema> schemaMap = null;
 
-        JSONArray objects = JSON.parseArray(logConfigs);
-        objects.forEach(obj->{
-            JSONObject jobj = (JSONObject)obj;
-            String logType = jobj.getString("logType");
-            schemaMap.put(logType,getJsonSchema(jobj.getString("logSchema")));
-        });
+        try {
+            schemaMap = new HashMap<>();
+            JSONArray objects = JSON.parseArray(logConfigs);
+            for (Object obj : objects) {
+                JSONObject jobj = (JSONObject) obj;
+                String logType = jobj.getString("logType");
+                schemaMap.put(logType, getJsonSchema(jobj.getString("logSchema")));
+            }
+        }catch (Exception e){
+            logger.error("schema parse error",e);
+        }
 
         return schemaMap;
 
     }
 
     public static Map<String,Map<String,Map<String,String>>> initRecoverAttris(String logConfigs){
-        Map<String,Map<String,Map<String,String>>> recoverMap = new HashMap<>();
-        JSONArray objects = JSON.parseArray(logConfigs);
-        objects.forEach(obj->{
-            JSONObject jobj = (JSONObject)obj;
-            String logType = jobj.getString("logType");
-            Map<String, Map<String, String>> columnRecover = getRecoverAttr(jobj.getString("columnRecover"));
-            if(columnRecover !=null) {
-                recoverMap.put(logType, columnRecover);
+        Map<String,Map<String,Map<String,String>>> recoverMap = null;
+        try {
+            recoverMap = new HashMap<>();
+            JSONArray objects = JSON.parseArray(logConfigs);
+            for (Object obj : objects) {
+                JSONObject jobj = (JSONObject) obj;
+                String logType = jobj.getString("logType");
+                Map<String, Map<String, String>> columnRecover = getRecoverAttr(jobj.getString("columnRecover"));
+                if (columnRecover != null) {
+                    recoverMap.put(logType, columnRecover);
+                }
             }
-        });
+        }catch (Exception e){
+            logger.error("init attributes error",e);
+        }
+
         return recoverMap;
     }
+
+
+    public static Map<String,String> initSinkTopic(String logConfigs){
+        Map<String,String> topicMap = null;
+        try {
+            topicMap = new HashMap<>();
+            JSONArray objects = JSON.parseArray(logConfigs);
+            for (Object obj : objects) {
+                JSONObject jobj = (JSONObject) obj;
+                String logType = jobj.getString("logType");
+                String sinkTopic = jobj.getString("sinkTopic");
+                if (StringUtils.isNotBlank(sinkTopic)) {
+                    topicMap.put(logType, sinkTopic);
+                }
+            }
+        }catch (Exception e){
+            logger.error("init sink topic error",e);
+        }
+
+        return topicMap;
+    }
+
 
     private static Schema getJsonSchema(String schemaString){
         Schema schema = null;
         try {
             schema = SchemaLoader.load(new org.json.JSONObject(new JSONTokener(schemaString)));
         }catch (Exception e){
-            e.printStackTrace();
+            logger.error("schema load error",e);
         }
         return schema;
     }
@@ -63,14 +102,18 @@ public class LogConfigUtils {
     private static Map<String,Map<String,String>> getRecoverAttr(String columnRecoverStr){
         Map<String,Map<String,String>> functionKV = null;
         if (StringUtils.isNoneBlank(columnRecoverStr)){
-            functionKV = new HashMap<>();
-            LogAttribute logAttribute = JSONObject.parseObject(columnRecoverStr, LogAttribute.class);
-            if (logAttribute.getChange_column_name()!=null){
-                functionKV.put("change_column_name",logAttribute.getChange_column_name());
-            }
+            try {
+                functionKV = new HashMap<>();
+                LogAttribute logAttribute = JSONObject.parseObject(columnRecoverStr, LogAttribute.class);
+                if (logAttribute.getChange_column_name() != null) {
+                    functionKV.put("change_column_name", logAttribute.getChange_column_name());
+                }
 
-            if (logAttribute.getChange_column_type()!=null){
-                functionKV.put("change_column_type",logAttribute.getChange_column_type());
+                if (logAttribute.getChange_column_type() != null) {
+                    functionKV.put("change_column_type", logAttribute.getChange_column_type());
+                }
+            }catch (Exception e){
+                logger.error("get attributes error",e);
             }
 
         }
@@ -84,7 +127,7 @@ public class LogConfigUtils {
         try{
             logConfigJson = JSONObject.toJSONString(logConfigs);
         }catch (Exception e){
-            e.printStackTrace();
+            logger.error("get schema json error",e);
         }
         return logConfigJson;
     }

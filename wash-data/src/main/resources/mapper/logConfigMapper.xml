@@ -6,7 +6,8 @@
     <select id="queryLogConfig" resultType="com.lhs.flink.pojo.LogConfig">
         SELECT log_type AS logType,
         log_schema AS logSchema,
-        column_recover AS columnRecover
+        column_recover AS columnRecover,
+        sink_topic AS sinkTopic
         FROM flink_log_config
         WHERE online_status = 1
     </select>

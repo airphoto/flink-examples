@@ -3,7 +3,8 @@ package com.lhs.flink.utils
 import com.alibaba.fastjson.{JSONArray, JSONObject}
 
 import scala.collection.mutable
-
+import ImplicitUtils._
+import org.slf4j.LoggerFactory
 /**
   * 文件名称：ColumnNameRecover
   * 创建时间：2020-05-27
@@ -15,10 +16,12 @@ import scala.collection.mutable
   **/
 object ColumnNameRecover {
 
+  private val logger = LoggerFactory.getLogger("ColumnNameRecover")
+
   /**
     * 修复列字段
     */
-  private[utils] def recoveryColumn(jsonObj: JSONObject, attributeConfigMap:mutable.Map[String, mutable.Map[String, mutable.Map[String, String]]]): Unit = {
+  private[utils] def recoveryColumn(jsonObj: JSONObject, attributeConfigMap:mutable.Map[String, mutable.Map[String, mutable.Map[String, String]]],monitor:java.util.Map[String, Integer]): Unit = {
     val typeValue = jsonObj.getString("type")
     val columnsMap = attributeConfigMap.get(typeValue)
     if (columnsMap.isDefined) {
@@ -29,10 +32,20 @@ object ColumnNameRecover {
           val oldLast = array.last
           val oldPre = entry._1.replace(oldLast, "")
           val newLast = entry._2
-          if (!"".equals(oldPre)) {
-            repairColumns(jsonObj, jsonObj, array, 0, entry._2, isLenEq = true)
-          }else{
-            repairColumns(jsonObj, jsonObj, array, 0, entry._2, isLenEq = false)
+          try {
+            if (!"".equals(oldPre)) {
+              repairColumns(jsonObj, jsonObj, array, 0, entry._2, isLenEq = true)
+            } else {
+              repairColumns(jsonObj, jsonObj, array, 0, entry._2, isLenEq = false)
+            }
+            val key = s"change_column_name:pass:${typeValue}:${oldLast.split(":")(0)}"
+            MonitorUtils.monitorInc(key,monitor)
+          }catch {
+            case e:Exception => {
+              val key = s"change_column_name:error:${typeValue}:${oldLast.split(":")(0)}"
+              MonitorUtils.monitorInc(key,monitor)
+              logger.error(s"${typeValue} change column name [${entry._1}] error",e)
+            }
           }
         }
       }
@@ -54,8 +67,6 @@ object ColumnNameRecover {
           json.remove(key)
           val newKey = newCol.split("\\.").last.split(":")(0)
           json.put(newKey,value)
-          val message = "repair|"+jsonType+"|"+key+"|"+newKey
-          //          acc.add(message)
         }
       }else{
         if(value != null){
@@ -111,11 +122,6 @@ object ColumnNameRecover {
               val kValue = jObj.get(ky)
               if(kValue == null){
                 jObj.put(ky,value)
-                val message = "repair|"+jsonType+"|"+oldKey+"|"+ky
-                //                acc.add(message)
-              }else{
-                val message = "repair|"+jsonType+"|"+oldKey+"|oldAndNewKeyAllExistAndDeleteOldKey"
-                //                acc.add(message)
               }
             }
           }else{
@@ -130,8 +136,6 @@ object ColumnNameRecover {
                     val kValue = jObj.get(ky)
                     if(kValue == null){
                       jObj.put(ky,value)
-                      val message = "repair|"+jsonType+"|"+oldKey+"|"+ky
-                      //                      acc.add(message)
                     }
                   }
                 }
@@ -139,8 +143,6 @@ object ColumnNameRecover {
                 val obj = new JSONObject()
                 obj.put(ky,value)
                 jArray.add(obj)
-                val message = "repair|"+jsonType+"|"+oldKey+"|"+ky
-                //                acc.add(message)
               }
             }
           }
@@ -149,16 +151,12 @@ object ColumnNameRecover {
             val obj = new JSONObject()
             obj.put(ky,value)
             json.put(key,obj)
-            val message = "repair|"+jsonType+"|"+oldKey+"|"+ky
-            //            acc.add(message)
           }else{
             val jArray = new JSONArray()
             val obj = new JSONObject()
             obj.put(ky,value)
             jArray.add(obj)
             json.put(key,jArray)
-            val message = "repair|"+jsonType+"|"+oldKey+"|"+ky
-            //            acc.add(message)
           }
         }
       }else if(index < sign){
@@ -208,8 +206,6 @@ object ColumnNameRecover {
       val kValue = json.get(ky)
       if(kValue == null){
         json.put(ky,value)
-        val message = "repair|"+jsonType+"|"+oldKey+"|"+ky
-        //        acc.add(message)
       }
     }
   }
