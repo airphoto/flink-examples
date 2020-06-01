@@ -6,12 +6,14 @@ import com.lhs.flink.dao.LogConfigMapper;
 import com.lhs.flink.dao.MybatisSessionFactory;
 import com.lhs.flink.pojo.GaugeMonitor;
 import com.lhs.flink.pojo.LogConfig;
+import com.lhs.flink.utils.DateUtils;
 import com.lhs.flink.utils.LogConfigUtils;
 import com.lhs.flink.utils.MonitorUtils;
 import com.lhs.flink.utils.RecoveryData;
-import com.lhs.flink.utils.RedisHelper;
+import net.jodah.expiringmap.ExpirationPolicy;
 import net.jodah.expiringmap.ExpiringMap;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.co.BroadcastProcessFunction;
 import org.apache.flink.util.Collector;
@@ -20,12 +22,10 @@ import org.everit.json.schema.Schema;
 import org.everit.json.schema.ValidationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.Pipeline;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -38,6 +38,7 @@ public class DataWashWithConfig extends BroadcastProcessFunction<String,Map<Stri
 
     private transient GaugeMonitor gaugeMonitor;
 
+    private ParameterTool parameterTool;
     /**
      * 每个日志配置的json串
      */
@@ -58,16 +59,12 @@ public class DataWashWithConfig extends BroadcastProcessFunction<String,Map<Stri
      */
     private Map<String,String> topicMap;
 
-    /**
-     * redis 相关的配置
-     */
-    private Properties redisPropertis;
 
     public DataWashWithConfig() {
     }
 
-    public DataWashWithConfig(Properties redisPropertis) {
-        this.redisPropertis = redisPropertis;
+    public DataWashWithConfig(ParameterTool parameterTool) {
+        this.parameterTool = parameterTool;
     }
 
     @Override
@@ -77,7 +74,6 @@ public class DataWashWithConfig extends BroadcastProcessFunction<String,Map<Stri
         try{
             // mysql 连接 初始化
             sqlSession = MybatisSessionFactory.getSession();
-            RedisHelper.makePool(redisPropertis);
 
             LogConfigMapper mapper = sqlSession.getMapper(LogConfigMapper.class);
             List<LogConfig> logConfigs = mapper.queryLogConfig();
@@ -85,8 +81,16 @@ public class DataWashWithConfig extends BroadcastProcessFunction<String,Map<Stri
             this.validateSchemas = LogConfigUtils.initSchema(this.logConfigs);
             this.recoverAttributes = LogConfigUtils.initRecoverAttris(this.logConfigs);
             this.topicMap = LogConfigUtils.initSinkTopic(this.logConfigs);
+            Map<String,Integer> metricMap = new HashMap<>();
+            ExpiringMap<String,Map<String,Integer>> monitorMap = ExpiringMap
+                    .builder()
+                    .expiration(this.parameterTool.getLong("metric.map.ttl",30),TimeUnit.SECONDS)
+                    .expirationPolicy(ExpirationPolicy.ACCESSED)
+                    .build();
+            monitorMap.put(DateUtils.getTimeByFormat(System.currentTimeMillis(),"yyyyMMdd"),metricMap);
+            System.out.println("monitor map expiration : "+monitorMap.getExpiration());
+            this.gaugeMonitor = getRuntimeContext().getMetricGroup().gauge("log_gauge",new GaugeMonitor(monitorMap));
 
-            this.gaugeMonitor = getRuntimeContext().getMetricGroup().gauge("log_gauge",new GaugeMonitor(ExpiringMap.builder().expiration(1, TimeUnit.DAYS).build()));
             logger.info("configs init");
         }catch (Exception e){
             logger.error("init error",e);
@@ -121,10 +125,16 @@ public class DataWashWithConfig extends BroadcastProcessFunction<String,Map<Stri
                     logger.error("validate log data error log type = {},error messages = {}", logType, e.getAllMessages());
                 }
             }
-            Tuple2<String, String> washData = new Tuple2<>("wash", object.toString());
-            logger.info("topic = " + washData.f0 + "; value = " + washData.f1);
+            Tuple2<String, String> washData = new Tuple2<>(this.topicMap.getOrDefault(logType,this.parameterTool.get("kafka.sink.default.topic","wash")), object.toString());
+            MonitorUtils.monitorInc("topic:"+washData.f0,this.gaugeMonitor);
+
             collector.collect(washData);
+            MonitorUtils.monitorInc("all",this.gaugeMonitor);
         }catch (Exception e){
+            Tuple2<String, String> errorJsonData = new Tuple2<>(this.parameterTool.get("kafka.sink.error.topic","error"), s);
+            collector.collect(errorJsonData);
+            MonitorUtils.monitorInc("topic:"+errorJsonData.f0,this.gaugeMonitor);
+            MonitorUtils.monitorInc("all",this.gaugeMonitor);
             logger.error("error json logs [{}]",s);
         }
     }
@@ -135,19 +145,6 @@ public class DataWashWithConfig extends BroadcastProcessFunction<String,Map<Stri
         this.validateSchemas = LogConfigUtils.initSchema(this.logConfigs);
         this.recoverAttributes = LogConfigUtils.initRecoverAttris(this.logConfigs);
         this.topicMap = LogConfigUtils.initSinkTopic(this.logConfigs);
-
-        Jedis jedis = null;
-        Pipeline pipeline = null;
-        try{
-            jedis = RedisHelper.getJedis();
-            pipeline = jedis.pipelined();
-            RedisHelper.saveMetricData(pipeline,this.gaugeMonitor.getValue(),getRuntimeContext().getTaskName());
-            logger.info("jedis db ["+jedis.getDB()+"] metric monitor ["+JSON.toJSONString(this.gaugeMonitor.getValue())+"]");
-        }catch (Exception e){
-            logger.error("metric data save error",e);
-        }finally {
-            RedisHelper.returnSource(jedis,pipeline);
-        }
     }
 
 

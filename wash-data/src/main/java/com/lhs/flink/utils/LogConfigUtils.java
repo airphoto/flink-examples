@@ -6,7 +6,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.lhs.flink.pojo.LogAttribute;
 import com.lhs.flink.pojo.LogConfig;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.flink.table.descriptors.Json;
 import org.everit.json.schema.Schema;
 import org.everit.json.schema.loader.SchemaLoader;
 import org.json.JSONTokener;

@@ -29,12 +29,13 @@ import java.util.regex.Pattern;
  *  -c com.lhs.flink.WashEntry wash-data-1.0-SNAPSHOT.jar \
  *  -kafka.consume.servers 10.122.238.97:9092 \
  *  -kafka.produce.servers 10.122.238.97:9092 \
+ *  -kafka.partition.discover.interval.ms 30000 \
  *  -kafka.group wash_group \
  *  -config.sleep.ms 5000 \
- *  -metric.redis.host 10.122.238.97 \
- *  -metric.redis.port 16379 \
- *  -metric.redis.password 'XLhy!321YH' \
- *  -metric.redis.db 14
+ *  -metric.map.ttl 30 \
+ *  -kafka.sink.default.topic wash \
+ *  -kafka.sink.error.topic error
+ *
  *
  **/
 public class WashEntry {
@@ -52,33 +53,27 @@ public class WashEntry {
             System.out.println("key:[" + en.getKey() + "] value[" + en.getValue() + "]");
         }
         // 消费kafka的地址
-        String kafkaConsumeServers = parameterTool.get("kafka.consume.servers","localhost:9092");
+        String kafkaConsumeServers = parameterTool.get("kafka.consume.servers","10.122.238.97:9092");
         // 生产kafka的地址
-        String kafkaProduceServers = parameterTool.get("kafka.produce.servers","localhost:9092");
+        String kafkaProduceServers = parameterTool.get("kafka.produce.servers","10.122.238.97:9092");
         // 消费者的group.id
         String groupId = parameterTool.get("kafka.group","wash_group");
         // 广播配置的间隔时间
         long sleepMs = parameterTool.getLong("config.sleep.ms", 2000L);
+        // 分区发现的间隔时间,毫秒
+        String kafkaPartitionDiscoveryIntervalMS = parameterTool.get("kafka.partition.discover.interval.ms","30000");
+
 
         // kafka消费者的配置
         Properties consumerConfig = new Properties();
         consumerConfig.put("bootstrap.servers",kafkaConsumeServers);
         consumerConfig.put("group.id",groupId);
         // 消费者支持动态发现分区
-        consumerConfig.put(FlinkKafkaConsumerBase.KEY_PARTITION_DISCOVERY_INTERVAL_MILLIS, "30000");
+        consumerConfig.put(FlinkKafkaConsumerBase.KEY_PARTITION_DISCOVERY_INTERVAL_MILLIS, kafkaPartitionDiscoveryIntervalMS);
 
-        // redis 的配置
-        Properties redisConfig = new Properties();
-        parameterTool.getProperties().stringPropertyNames().forEach(propName->{
-            if (propName.startsWith("metric.redis")){
-                redisConfig.put(propName,parameterTool.get(propName));
-            }
-        });
 
         final StreamExecutionEnvironment environment = StreamExecutionEnvironment.getExecutionEnvironment();
         environment.enableCheckpointing(10000);
-
-        List<String> topics = Arrays.asList("bdt_original");
 
         FlinkKafkaConsumer010<String> kafkaSource = new FlinkKafkaConsumer010<>(ConsumerTopicPatterns,new SimpleStringSchema(),consumerConfig);
 
@@ -98,7 +93,7 @@ public class WashEntry {
         BroadcastStream<Map<String, String>> broadcastLogConfig = logConfigSource.broadcast(logConfigState);
 
         // 原始数据接收广播配置，根据配置处理原始数据
-        SingleOutputStreamOperator<Tuple2<String, String>> washData = dataStreamSource.connect(broadcastLogConfig).process(new DataWashWithConfig(redisConfig));
+        SingleOutputStreamOperator<Tuple2<String, String>> washData = dataStreamSource.connect(broadcastLogConfig).process(new DataWashWithConfig(parameterTool));
 
 //         原始数据生成Tuple2<Topic,Log> 的形式，需要自定义序列化的方式
         KafkaKeyedSerialization kafkaKeyedSerialization = new KafkaKeyedSerialization();

@@ -28,13 +28,11 @@ object ColumnTypeRecover {
         for (entry <- changeColumnTypeMap.get) {
           val array = entry._1.split("\\.")
           try {
-            repairColumnTypes(jsonObj, array, 0, typeValue, entry._2)
-            val key = s"change_column_type:pass:${typeValue}:${array.last.split(":")(0)}"
-            MonitorUtils.monitorInc(key,monitor)
+            repairColumnTypes(jsonObj, array, 0, typeValue, entry._2,monitor)
           }catch {
             case e:Exception =>{
-              val key = s"change_column_type:error:${typeValue}:${array.last.split(":")(0)}"
-              MonitorUtils.monitorInc(key,monitor)
+              val monitorKey = s"change_column_type:error:${typeValue}:${array.last.split(":")(0)}"
+              MonitorUtils.monitorInc(monitorKey,monitor)
               logger.error(s"${typeValue} recover column [${entry._1}] type error",e)
             }
           }
@@ -46,18 +44,17 @@ object ColumnTypeRecover {
   /**
     * 数据字段类型修复
     */
-  private def repairColumnTypes(json: JSONObject,array: Array[String],index: Int,jsonType: String,changeType:String): Unit ={
+  private def repairColumnTypes(json: JSONObject,array: Array[String],index: Int,jsonType: String,changeType:String,monitor:GaugeMonitor): Unit ={
     val keyTypes = array(index).split(":")
     val key = keyTypes(0)
     val keyYype = keyTypes(1)
     if(index == (array.length -1)){
       val value = json.get(key)
       changeType match {
-        case "array" => base2Array(value,json,key,jsonType)
-        case "string" | "int" | "long" | "boolean" | "double" => base2base(value,json,key,jsonType,changeType)
-        case _ => timeRecover(value,json,key,jsonType,changeType)
+        case "array" => base2Array(value,json,key,jsonType,monitor)
+        case "string" | "int" | "long" | "boolean" | "double" => base2base(value,json,key,jsonType,changeType,monitor)
+        case _ => timeRecover(value,json,key,jsonType,changeType,monitor)
       }
-
     }else{
       val opt = json.get(key)
       if(opt !=null){
@@ -65,7 +62,7 @@ object ColumnTypeRecover {
         if("struct".equals(keyYype)){
           if(className.endsWith("JSONObject")){
             val jsonObj = json.getJSONObject(key)
-            repairColumnTypes(jsonObj,array,index+1,jsonType,changeType)
+            repairColumnTypes(jsonObj,array,index+1,jsonType,changeType,monitor)
           }
         }else if("array[struct]".equals(keyYype)){
           if(className.endsWith("JSONArray")){
@@ -75,7 +72,7 @@ object ColumnTypeRecover {
               val cName = jSONArray.get(i).getClass.toString
               if(cName.endsWith("JSONObject")){
                 val jsonObj = jSONArray.getJSONObject(i)
-                repairColumnTypes(jsonObj,array,index+1,jsonType,changeType)
+                repairColumnTypes(jsonObj,array,index+1,jsonType,changeType,monitor)
               }
             }
           }
@@ -85,7 +82,7 @@ object ColumnTypeRecover {
   }
 
 
-  private def base2Array(value:AnyRef,json: JSONObject,key:String,jsonType:String):Unit={
+  private def base2Array(value:AnyRef,json: JSONObject,key:String,jsonType:String,monitor:GaugeMonitor):Unit={
     if(value != null){
       val strValue = value.toString
       try{
@@ -99,6 +96,8 @@ object ColumnTypeRecover {
             json.put(key,arrayValue)
           }
         }
+        val monitorKey = s"change_column_type:pass:${jsonType}:${key}"
+        MonitorUtils.monitorInc(monitorKey,monitor)
       }catch {
         case ex: Exception =>
           var strNewValue = ""
@@ -110,12 +109,15 @@ object ColumnTypeRecover {
           }
           val arrayValue = JSON.parseArray(strNewValue)
           json.put(key,arrayValue)
+          val monitorKey = s"change_column_type:pass:${jsonType}:${key}"
+          MonitorUtils.monitorInc(monitorKey,monitor)
       }
     }
+
   }
 
 
-  private def base2base(value:AnyRef,json: JSONObject,key:String,jsonType:String,changeType:String):Unit = {
+  private def base2base(value:AnyRef,json: JSONObject,key:String,jsonType:String,changeType:String,monitor:GaugeMonitor):Unit = {
     if(value!=null){
       try {
         changeType match {
@@ -126,16 +128,21 @@ object ColumnTypeRecover {
           case "double" => json.put(key, value.toString.toDouble)
           case _ => // pass
         }
+
+        val monitorKey = s"change_column_type:pass:${jsonType}:${key}"
+        MonitorUtils.monitorInc(monitorKey,monitor)
       }catch {
         case e:Exception => {
           json.remove(key)
+          val monitorKey = s"change_column_type:error:${jsonType}:${key}"
+          MonitorUtils.monitorInc(monitorKey,monitor)
           logger.error(s"log base type change [log=${jsonType} column=${key} change_type=${changeType}] error",e)
         }
       }
     }
   }
 
-  private def timeRecover(value:AnyRef,json: JSONObject,key:String,jsonType:String,changeAttr:String):Unit = {
+  private def timeRecover(value:AnyRef,json: JSONObject,key:String,jsonType:String,changeAttr:String,monitor:GaugeMonitor):Unit = {
     if (value != null){
       try{
         val attr = JSON.parseObject(changeAttr)
@@ -154,12 +161,25 @@ object ColumnTypeRecover {
             val length = attr.getOrDefault("string_length","13").toString.toInt
             numFormat(value.toString,length)
           }
-          case _ => ""
+          case _ => {
+            val monitorKey = s"change_column_type:error:${jsonType}:${key}"
+            MonitorUtils.monitorInc(monitorKey,monitor)
+            ""
+          }
         }
 
-        if (timestr != "") json.put(key,timestr)
+        if (timestr != "") {
+          json.put(key,timestr)
+          val monitorKey = s"change_column_type:pass:${jsonType}:${key}"
+          MonitorUtils.monitorInc(monitorKey,monitor)
+        }
+
+
       }catch {
         case e:Exception =>{
+          json.remove(key)
+          val monitorKey = s"change_column_type:error:${jsonType}:${key}"
+          MonitorUtils.monitorInc(monitorKey,monitor)
           logger.error(s"time recover error [log=${jsonType} time_column=${key}]",e)
         }
       }
@@ -168,6 +188,7 @@ object ColumnTypeRecover {
 
   /**
     * 格式化的日志转化成字符串,最高13位
+    * {"format_type":"format_2_string","format_string":"yyyy-MM-dd","string_length":13}
     * @param str
     * @param formatStr
     * @param length
@@ -182,6 +203,7 @@ object ColumnTypeRecover {
 
   /**
     * 将数字字符串转化成 格式化的数据
+    * {"format_type":"string_2_format","format_string":"yyyy-MM-dd"}
     * @param str
     * @param formatStr
     * @return
@@ -189,22 +211,22 @@ object ColumnTypeRecover {
   private def timeLong2Format(str:String,formatStr:String):String = {
     val format = new SimpleDateFormat(formatStr)
     if(str.length >=13){
-      format.format(new Date(str.take(13).str2Long))
+      format.format(new Date(str.take(13).toLong))
     } else{
-      format.format(new Date(str.str2Long * math.pow(10,13-str.length).toLong))
+      format.format(new Date(str.toLong * math.pow(10,13-str.length).toLong))
     }
   }
 
   /**
-    * "{\"format_type\":\"time_num_format\",\"string_length\":13}"
+    * {"format_type":"time_num_format","string_length":13}
     * 长度最高位16位
     * @param str
     * @param length
     * @return
     */
   private def numFormat(str:String,length:Int=13):String = {
-    if(str.str2Long > 0 && length <= 16){
-      (str.str2Long * math.pow(10,math.abs(16-str.length)).toLong).toString.take(length)
+    if(str.toLong > 0 && length <= 16){
+      (str.toLong * math.pow(10,math.abs(16-str.length)).toLong).toString.take(length)
     }else{
       str
     }

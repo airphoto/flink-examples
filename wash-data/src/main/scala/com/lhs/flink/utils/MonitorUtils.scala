@@ -1,4 +1,6 @@
 package com.lhs.flink.utils
+import java.util
+
 import ImplicitUtils._
 import com.lhs.flink.pojo.GaugeMonitor
 object MonitorUtils {
@@ -9,9 +11,10 @@ object MonitorUtils {
     * @param logMonitorMap
     */
   def monitorInc(key:String,logMonitorMap: GaugeMonitor):Unit = {
-    val monitorData = logMonitorMap.getValue;
+    val currentDay = System.currentTimeMillis().long2ShortDate
+    val monitorData = logMonitorMap.getLogMonitor.getOrDefault(currentDay,new util.HashMap[String,Integer]())
     monitorData.put(key,monitorData.getOrDefault(key,0)+1)
-    logMonitorMap.setLogMonitor(monitorData)
+    logMonitorMap.getLogMonitor.put(currentDay,monitorData)
   }
 
   /**
@@ -34,7 +37,6 @@ object MonitorUtils {
     * @param logMonitor
     */
   def normalInc(logType:String,logMonitor: GaugeMonitor):Unit = {
-    val currentDay = System.currentTimeMillis().long2ShortDate
     val key = s"pass:${logType}"
     monitorInc(key,logMonitor)
   }
