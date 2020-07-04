@@ -1,6 +1,7 @@
 package com.lhs.flink.rule.engine;
 
 import com.lhs.flink.rule.pojo.LogConfig;
+import com.lhs.flink.rule.pojo.RedisData;
 import com.lhs.flink.rule.utils.LogConfigUtils;
 
 import java.util.*;
@@ -33,16 +34,24 @@ public class EngineManager{
         return instance;
     }
 
-    private void initEngines(String enginString){
-        logConfigs = LogConfigUtils.deserializeConfigs(enginString);
-        Set<Integer> configIds = logConfigs.stream().map(LogConfig::getId).collect(Collectors.toSet());
+    public void initEngines(String engineString){
+        logConfigs = LogConfigUtils.deserializeConfigs(engineString);
+
         for (LogConfig logConfig : logConfigs) {
             if(!engines.keySet().contains(logConfig.getId())) {
                 MySQLLoadJavaScriptEngine mySQLLoadJavaScriptEngine = new MySQLLoadJavaScriptEngine(logConfig.getProcessJS());
+                mySQLLoadJavaScriptEngine.initEngine();
                 engines.put(logConfig.getId(), mySQLLoadJavaScriptEngine);
             }
         }
 
+
+    }
+
+    public void reload(String engineString){
+        initEngines(engineString);
+
+        Set<Integer> configIds = logConfigs.stream().map(LogConfig::getId).collect(Collectors.toSet());
         for (Integer engineId : engines.keySet()) {
             if(!configIds.contains(engineId)){
                 engines.remove(engineId);
@@ -50,14 +59,21 @@ public class EngineManager{
         }
     }
 
-    private void reload(String enginString){
-        initEngines(enginString);
-    }
-
-    private List<Optional<String>> executeAll(String data){
+    public List<Optional<String>> executeAll(String data){
         List<Optional<String>> result = new ArrayList<>();
         for (Map.Entry<Integer, MySQLLoadJavaScriptEngine> engineEntry : engines.entrySet()) {
             result.add(engineEntry.getValue().processData(data));
+        }
+        return result;
+    }
+
+    public List<RedisData> getRedisDatas(String data){
+        List<RedisData> result = new ArrayList<>();
+        for (Map.Entry<Integer, MySQLLoadJavaScriptEngine> engineEntry : engines.entrySet()) {
+            RedisData redisData = engineEntry.getValue().getRedisData(data);
+            if (redisData != null) {
+                result.add(redisData);
+            }
         }
         return result;
     }

@@ -1,5 +1,7 @@
 package com.lhs.flink.rule.engine;
 
+import com.alibaba.fastjson.JSON;
+import com.lhs.flink.rule.pojo.RedisData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,6 +72,31 @@ public class MySQLLoadJavaScriptEngine {
         }catch (Exception e){
             logger.error("process data error",e);
             return Optional.empty();
+        }
+    }
+
+    /**
+     * 处理数据，获得结果
+     * @param data
+     * @return
+     */
+    public RedisData getRedisData(String data){
+        Object result = null;
+        try{
+            if(engine == null){
+                throw new RuntimeException(ENGINE_NOT_LOADED);
+            }
+
+            result = invocable.invokeFunction("process_data",data);
+            System.out.println(result);
+            if(result != null){
+                return JSON.parseObject((String)result, RedisData.class);
+            }else{
+                return null;
+            }
+        }catch (Exception e){
+            logger.error("process data error {}",result,e);
+            return null;
         }
     }
 

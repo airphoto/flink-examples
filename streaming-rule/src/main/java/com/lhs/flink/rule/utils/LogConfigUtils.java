@@ -47,6 +47,8 @@ public class LogConfigUtils {
         return configs;
     }
 
+
+
     public static void main(String[] args) {
         LogConfig config = new LogConfig();
         config.setId(1);

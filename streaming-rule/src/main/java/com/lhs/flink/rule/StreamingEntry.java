@@ -1,14 +1,16 @@
 package com.lhs.flink.rule;
 
+import com.lhs.flink.rule.pojo.RedisData;
 import com.lhs.flink.rule.process.DataProcessWithConfig;
-import com.lhs.flink.rule.serialization.KafkaKeyedSerialization;
+import com.lhs.flink.rule.sink.RedisSink;
 import com.lhs.flink.rule.sources.LogConfigSource;
+import org.apache.flink.api.common.restartstrategy.RestartStrategies;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.state.MapStateDescriptor;
+import org.apache.flink.api.common.time.Time;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeHint;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
-import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.datastream.BroadcastStream;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -17,7 +19,6 @@ import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer010;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumerBase;
-import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer010;
 
 import java.util.Map;
 import java.util.Properties;
@@ -31,13 +32,14 @@ import java.util.regex.Pattern;
  *  flink run -m yarn-cluster -yjm 2048 -yn 4 -ys 2 -ytm 2048 -ynm wash_data -p 8 -sae \
  *  -c StreamingEntry wash-data-1.0-SNAPSHOT.jar \
  *  -kafka.consume.servers 10.122.238.97:9092 \
- *  -kafka.produce.servers 10.122.238.97:9092 \
+ *  -kafka.group rule_group \
  *  -kafka.partition.discover.interval.ms 30000 \
- *  -kafka.group wash_group \
+ *  -kafka.group alg_group \
+ *  -checkpoint.duration.ms 60000 \
  *  -config.sleep.ms 5000 \
- *  -metric.map.ttl 30 \
- *  -kafka.sink.default.topic wash \
- *  -kafka.sink.error.topic error
+ *  -jedis.host 10.122.238.97 \
+ *  -jedis.port 16379 \
+ *  -jedis.password XLhy!321YH
  *
  *
  **/
@@ -57,15 +59,14 @@ public class StreamingEntry {
         }
         // 消费kafka的地址
         String kafkaConsumeServers = parameterTool.get("kafka.consume.servers","10.122.238.97:9092");
-        // 生产kafka的地址
-        String kafkaProduceServers = parameterTool.get("kafka.produce.servers","10.122.238.97:9092");
         // 消费者的group.id
         String groupId = parameterTool.get("kafka.group","wash_group");
         // 广播配置的间隔时间
         long sleepMs = parameterTool.getLong("config.sleep.ms", 2000L);
+        // checkpoint的间隔
+        long checkpointDurationMs = parameterTool.getLong("checkpoint.duration.ms",30000L);
         // 分区发现的间隔时间,毫秒
         String kafkaPartitionDiscoveryIntervalMS = parameterTool.get("kafka.partition.discover.interval.ms","30000");
-
 
         // kafka消费者的配置
         Properties consumerConfig = new Properties();
@@ -76,9 +77,15 @@ public class StreamingEntry {
 
 
         final StreamExecutionEnvironment environment = StreamExecutionEnvironment.getExecutionEnvironment();
-        environment.enableCheckpointing(10000);
+        environment.enableCheckpointing(checkpointDurationMs);
+        environment.setRestartStrategy(RestartStrategies.failureRateRestart(
+                3,
+                Time.seconds(60),
+                Time.seconds(10)
+        ));
 
         FlinkKafkaConsumer010<String> kafkaSource = new FlinkKafkaConsumer010<>(ConsumerTopicPatterns,new SimpleStringSchema(),consumerConfig);
+        kafkaSource.setCommitOffsetsOnCheckpoints(true);
 
         DataStream<String> dataStreamSource = environment.addSource(kafkaSource).rebalance();
 
@@ -96,17 +103,10 @@ public class StreamingEntry {
         BroadcastStream<Map<String, String>> broadcastLogConfig = logConfigSource.broadcast(logConfigState);
 
         // 原始数据接收广播配置，根据配置处理原始数据
-        SingleOutputStreamOperator<Tuple2<String, String>> washData = dataStreamSource.connect(broadcastLogConfig).process(new DataProcessWithConfig(parameterTool));
+        SingleOutputStreamOperator<RedisData> redisDataSingleOutputStreamOperator = dataStreamSource.connect(broadcastLogConfig).process(new DataProcessWithConfig(parameterTool));
 
-//         原始数据生成Tuple2<Topic,Log> 的形式，需要自定义序列化的方式
-        KafkaKeyedSerialization kafkaKeyedSerialization = new KafkaKeyedSerialization();
-
-//         生产者
-        FlinkKafkaProducer010<Tuple2<String, String>> flinkKafkaProducer = new FlinkKafkaProducer010<>(kafkaProduceServers, "", kafkaKeyedSerialization);
-
-//         将数据写到kafka
-        washData.addSink(flinkKafkaProducer);
-
+        //将数据写到 redis
+        redisDataSingleOutputStreamOperator.addSink(new RedisSink(parameterTool));
         environment.execute();
 
     }
