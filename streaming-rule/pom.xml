@@ -112,7 +112,7 @@
     </dependencies>
 
     <build>
-        <finalName>streaming-etl</finalName>
+        <finalName>streaming-rule</finalName>
         <plugins>
             <plugin>
                 <groupId>net.alchim31.maven</groupId>

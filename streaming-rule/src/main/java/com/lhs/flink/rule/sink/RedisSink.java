@@ -11,6 +11,8 @@ import org.apache.flink.runtime.state.FunctionInitializationContext;
 import org.apache.flink.runtime.state.FunctionSnapshotContext;
 import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Pipeline;
 
@@ -26,6 +28,8 @@ import java.util.List;
  * @Version V1.0
  **/
 public class RedisSink extends RichSinkFunction<RedisData> implements CheckpointedFunction {
+
+    private Logger logger = LoggerFactory.getLogger(RedisSink.class);
 
     private  ParameterTool parameterTool;
     private transient ListState<RedisData> checkpointedState;
@@ -47,6 +51,7 @@ public class RedisSink extends RichSinkFunction<RedisData> implements Checkpoint
         super.open(parameters);
         RedisHelper.mkPool(parameterTool);
         bufferedElements = new ArrayList<>();
+        logger.debug("sink init");
     }
 
     /**
@@ -57,6 +62,7 @@ public class RedisSink extends RichSinkFunction<RedisData> implements Checkpoint
     public void close() throws Exception {
         super.close();
         RedisHelper.destroy();
+        logger.debug("sink close");
     }
 
     @Override
@@ -76,8 +82,13 @@ public class RedisSink extends RichSinkFunction<RedisData> implements Checkpoint
      */
     @Override
     public void snapshotState(FunctionSnapshotContext functionSnapshotContext) throws Exception {
-        checkpointedState.clear();
-        checkpointedState.addAll(bufferedElements);
+        try {
+            checkpointedState.clear();
+            checkpointedState.addAll(bufferedElements);
+            logger.debug("snapshot state completed");
+        }catch (Exception e){
+            logger.error("snapshot state error",e);
+        }
     }
 
     /**
@@ -87,15 +98,21 @@ public class RedisSink extends RichSinkFunction<RedisData> implements Checkpoint
      */
     @Override
     public void initializeState(FunctionInitializationContext functionInitializationContext) throws Exception {
-        ListStateDescriptor<RedisData> descriptor = new ListStateDescriptor<RedisData>(
-                "buffered-elements",
-                TypeInformation.of(new TypeHint<RedisData>() {})
-        );
+        try {
+            ListStateDescriptor<RedisData> descriptor = new ListStateDescriptor<RedisData>(
+                    "buffered-elements",
+                    TypeInformation.of(new TypeHint<RedisData>() {
+                    })
+            );
 
-        checkpointedState = functionInitializationContext.getOperatorStateStore().getListState(descriptor);
+            checkpointedState = functionInitializationContext.getOperatorStateStore().getListState(descriptor);
 
-        if(functionInitializationContext.isRestored()){
-            bufferedElements.addAll((Collection<? extends RedisData>) checkpointedState.get());
+            if (functionInitializationContext.isRestored()) {
+                bufferedElements.addAll((Collection<? extends RedisData>) checkpointedState.get());
+            }
+            logger.debug("initialize state completed");
+        }catch (Exception e){
+            logger.error("initialize state error",e);
         }
     }
 }

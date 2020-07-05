@@ -62,7 +62,7 @@ public class EngineTest {
     public void testValue(){
         Jedis jedis = new Jedis("10.122.238.97",16379);
         jedis.auth("XLhy!321YH");
-        jedis.select(1);
+        jedis.select(14);
         System.out.println(jedis.get("10001:88888"));
 
     }

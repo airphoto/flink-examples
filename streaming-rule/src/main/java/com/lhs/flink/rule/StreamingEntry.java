@@ -31,17 +31,16 @@ import java.util.regex.Pattern;
  *      描述：在不停止当前flink的情况下，添加新的任务
  * @create 2020/5/21
  *
- *  flink run -m yarn-cluster -yjm 2048 -yn 4 -ys 2 -ytm 2048 -ynm wash_data -p 8 -sae \
- *  -c StreamingEntry wash-data-1.0-SNAPSHOT.jar \
+ *  flink run -m yarn-cluster -yjm 2048 -yn 4 -ys 2 -ytm 2048 -ynm rule_jobs -p 8 -sae \
+ *  -c com.lhs.flink.rule.StreamingEntry streaming-rule.jar \
  *  -kafka.consume.servers 10.122.238.97:9092 \
  *  -kafka.group rule_group \
  *  -kafka.partition.discover.interval.ms 30000 \
- *  -kafka.group alg_group \
  *  -checkpoint.duration.ms 60000 \
  *  -config.sleep.ms 5000 \
  *  -jedis.host 10.122.238.97 \
  *  -jedis.port 16379 \
- *  -jedis.password XLhy!321YH
+ *  -jedis.password 'XLhy!321YH'
  *
  *
  **/
