@@ -94,6 +94,10 @@ public class RedisHelper {
                 default:
                     logger.warn("error redis type : {}",redisData.getRedisType());
             }
+
+            if(redisData.getTtl() > 0){
+                pipeline.expire(redisData.getKey(),redisData.getTtl());
+            }
         }catch (Exception e){
             logger.error("redis save error ",e);
         }
