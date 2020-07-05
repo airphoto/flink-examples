@@ -9,8 +9,7 @@ function process_data(json_data) {
             "key":key,
             "field":"",
             "value":value,
-            "time":"",
             "ttl":"10000"
         };
-        return JSON.stringify(redisData);
+        return JSON.stringify(new Array(redisData));
 }

@@ -70,9 +70,13 @@ public class EngineManager{
     public List<RedisData> getRedisDatas(String data){
         List<RedisData> result = new ArrayList<>();
         for (Map.Entry<Integer, MySQLLoadJavaScriptEngine> engineEntry : engines.entrySet()) {
-            RedisData redisData = engineEntry.getValue().getRedisData(data);
-            if (redisData != null) {
-                result.add(redisData);
+            List<RedisData> redisData = engineEntry.getValue().getRedisData(data);
+            if(redisData != null) {
+                for (RedisData redisDatum : redisData) {
+                    if (redisDatum != null) {
+                        result.add(redisDatum);
+                    }
+                }
             }
         }
         return result;

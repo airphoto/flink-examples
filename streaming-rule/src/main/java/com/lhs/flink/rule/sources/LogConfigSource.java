@@ -17,7 +17,7 @@ import java.util.Map;
 /**
  * @author lihuasong
  * @description
- *      定时获取schema和filter数据
+ *      定时获取JavaScript脚本数据
  * @create 2020/5/21
  **/
 public class LogConfigSource extends RichSourceFunction<Map<String,String>> {

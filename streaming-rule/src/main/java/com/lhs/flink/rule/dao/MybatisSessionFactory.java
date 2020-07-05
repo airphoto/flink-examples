@@ -10,7 +10,8 @@ import java.io.InputStream;
 
 /**
  * @author lihuasong
- * @description 描述
+ * @description
+ *      描述：mybatis工厂
  * @create 2020/5/26
  **/
 public class MybatisSessionFactory {

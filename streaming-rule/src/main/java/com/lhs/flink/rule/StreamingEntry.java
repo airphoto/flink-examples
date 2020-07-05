@@ -2,6 +2,7 @@ package com.lhs.flink.rule;
 
 import com.lhs.flink.rule.pojo.RedisData;
 import com.lhs.flink.rule.process.DataProcessWithConfig;
+import com.lhs.flink.rule.process.JsonLogFilter;
 import com.lhs.flink.rule.sink.RedisSink;
 import com.lhs.flink.rule.sources.LogConfigSource;
 import org.apache.flink.api.common.restartstrategy.RestartStrategies;
@@ -26,7 +27,8 @@ import java.util.regex.Pattern;
 
 /**
  * @author lihuasong
- * @description 描述
+ * @description
+ *      描述：在不停止当前flink的情况下，添加新的任务
  * @create 2020/5/21
  *
  *  flink run -m yarn-cluster -yjm 2048 -yn 4 -ys 2 -ytm 2048 -ynm wash_data -p 8 -sae \
@@ -87,7 +89,10 @@ public class StreamingEntry {
         FlinkKafkaConsumer010<String> kafkaSource = new FlinkKafkaConsumer010<>(ConsumerTopicPatterns,new SimpleStringSchema(),consumerConfig);
         kafkaSource.setCommitOffsetsOnCheckpoints(true);
 
-        DataStream<String> dataStreamSource = environment.addSource(kafkaSource).rebalance();
+        DataStream<String> dataStreamSource = environment
+                .addSource(kafkaSource)
+                .rebalance()
+                .filter(new JsonLogFilter());
 
         // 广播变量
         MapStateDescriptor<String,Map<String,String>> logConfigState = new MapStateDescriptor<String, Map<String,String>>(

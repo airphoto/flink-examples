@@ -13,19 +13,17 @@ public class RedisData {
     private String key;
     private String field;
     private String value;
-    private String time;
     private Integer ttl;
 
     public RedisData() {
     }
 
-    public RedisData(int db, int redisType, String key, String field, String value, String time, Integer ttl) {
+    public RedisData(int db, int redisType, String key, String field, String value, Integer ttl) {
         this.db = db;
         this.redisType = redisType;
         this.key = key;
         this.field = field;
         this.value = value;
-        this.time = time;
         this.ttl = ttl;
     }
 
@@ -60,14 +58,6 @@ public class RedisData {
         this.value = value;
     }
 
-    public String getTime() {
-        return time;
-    }
-
-    public void setTime(String time) {
-        this.time = time;
-    }
-
     public Integer getTtl() {
         return ttl;
     }
@@ -92,7 +82,6 @@ public class RedisData {
                 ", key='" + key + '\'' +
                 ", field='" + field + '\'' +
                 ", value='" + value + '\'' +
-                ", time='" + time + '\'' +
                 ", ttl=" + ttl +
                 '}';
     }

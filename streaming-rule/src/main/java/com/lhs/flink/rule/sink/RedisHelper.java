@@ -38,8 +38,10 @@ public class RedisHelper {
             config.setMaxTotal(parameterTool.getInt("jedis.max.total",5));
             config.setMaxIdle(parameterTool.getInt("jedis.max.idle",10));
             config.setMinIdle(parameterTool.getInt("jedis.min.idle",5));
-            config.setTestOnBorrow(parameterTool.getBoolean("jedis.test.borrow",false));
-            config.setTestOnReturn(parameterTool.getBoolean("jedis.test.borrow",false));
+            config.setTestOnBorrow(parameterTool.getBoolean("jedis.test.borrow",true));
+            config.setTestOnReturn(parameterTool.getBoolean("jedis.test.borrow",true));
+            config.setTestOnCreate(parameterTool.getBoolean("jedis.test.create",true));
+            config.setTestWhileIdle(parameterTool.getBoolean("jedis.test.idle",true));
             config.setMaxWaitMillis(parameterTool.getLong("jedis.max.wait.ms",60000));
             jedisPool = new JedisPool(config,parameterTool.get("jedis.hosts","10.122.238.97"),
                     parameterTool.getInt("jedis.port",16379),

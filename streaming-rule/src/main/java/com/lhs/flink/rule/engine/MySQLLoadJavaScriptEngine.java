@@ -1,20 +1,23 @@
 package com.lhs.flink.rule.engine;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
 import com.lhs.flink.rule.pojo.RedisData;
+import com.lhs.flink.rule.utils.LogConfigUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.script.Invocable;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
+import java.util.List;
 import java.util.Optional;
 
 /**
  * 文件名称：MySQLLoadJavaScriptEngine
  * 创建时间：2020-07-03
  * 描述：
- *
+ *    javascript引擎，处理json日志，返回redis需要的结果
  * @author lihuasong
  * @version v1.0
  * 更新 ：[0] 2020-07-03 lihuasong [变更内容]
@@ -80,7 +83,7 @@ public class MySQLLoadJavaScriptEngine {
      * @param data
      * @return
      */
-    public RedisData getRedisData(String data){
+    public List<RedisData> getRedisData(String data){
         Object result = null;
         try{
             if(engine == null){
@@ -88,9 +91,9 @@ public class MySQLLoadJavaScriptEngine {
             }
 
             result = invocable.invokeFunction("process_data",data);
-            System.out.println(result);
+            logger.info("engine process data {}",result);
             if(result != null){
-                return JSON.parseObject((String)result, RedisData.class);
+                return JSONArray.parseArray((String)result, RedisData.class);
             }else{
                 return null;
             }
