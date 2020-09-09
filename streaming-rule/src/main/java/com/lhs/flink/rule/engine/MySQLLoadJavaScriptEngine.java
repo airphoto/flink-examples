@@ -2,7 +2,7 @@ package com.lhs.flink.rule.engine;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
-import com.lhs.flink.rule.pojo.RedisData;
+import com.lhs.flink.rule.pojo.RedisDataWithName;
 import com.lhs.flink.rule.utils.LogConfigUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,7 +83,7 @@ public class MySQLLoadJavaScriptEngine {
      * @param data
      * @return
      */
-    public List<RedisData> getRedisData(String data){
+    public List<RedisDataWithName> getRedisDataWithName(String data){
         Object result = null;
         try{
             if(engine == null){
@@ -91,16 +91,16 @@ public class MySQLLoadJavaScriptEngine {
             }
 
             result = invocable.invokeFunction("process_data",data);
-            logger.info("engine process data {}",result);
+            logger.info("current thread {} ,engine process data {}",Thread.currentThread().getId(),result);
             if(result != null){
-                return JSONArray.parseArray((String)result, RedisData.class);
+                return JSONArray.parseArray((String)result, RedisDataWithName.class);
             }else{
                 return null;
             }
         }catch (Exception e){
-            logger.error("process data error {}",result,e);
             return null;
         }
     }
+
 
 }

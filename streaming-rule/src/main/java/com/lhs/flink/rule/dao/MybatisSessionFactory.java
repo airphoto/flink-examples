@@ -30,13 +30,13 @@ public class MybatisSessionFactory {
         } catch (Exception e){
             LOG.error("create MybatisSessionFactory read mybatis-config.xml cause Exception",e);
         } finally {
-           if(inputStream != null){
-               try {
-                   inputStream.close();
-               }catch (Exception e){
-                   LOG.error("input stream close error",e);
-               }
-           }
+            if(inputStream != null){
+                try {
+                    inputStream.close();
+                }catch (Exception e){
+                    LOG.error("input stream close error",e);
+                }
+            }
         }
     }
 

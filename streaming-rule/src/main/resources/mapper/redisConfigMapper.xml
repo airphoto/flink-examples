@@ -3,12 +3,11 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.xianlai.streaming.single.dao.LogConfigMapper">
     <!--查询关键字匹配 -->
-    <select id="queryLogConfig" resultType="com.xianlai.streaming.single.pojo.LogConfig">
-        SELECT process_js AS processJS,
-        purpose as functionName,
-        id as id,
+    <select id="queryRedisConfig" resultType="com.xianlai.streaming.single.pojo.RedisConfig">
+        SELECT id AS id,
+        redis_name as redisName,
+        redis_properties as properties,
         online_status as status
-        FROM streaming_single_log_js
-        WHERE online_status = 1
+        FROM streaming_single_redis_config
     </select>
 </mapper>

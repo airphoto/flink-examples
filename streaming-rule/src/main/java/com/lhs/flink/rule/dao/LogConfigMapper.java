@@ -2,6 +2,7 @@ package com.lhs.flink.rule.dao;
 
 
 import com.lhs.flink.rule.pojo.LogConfig;
+import com.lhs.flink.rule.pojo.RedisConfig;
 
 import java.util.List;
 
@@ -12,4 +13,5 @@ import java.util.List;
  **/
 public interface LogConfigMapper {
     List<LogConfig> queryLogConfig();
+    List<RedisConfig> queryRedisConfig();
 }

@@ -7,7 +7,8 @@ package com.lhs.flink.rule.pojo;
  * @Date2020/7/4 8:58
  * @Version V1.0
  **/
-public class RedisData {
+public class RedisDataWithName {
+    private String redisName;
     private int db;
     private int redisType;
     private String key;
@@ -15,16 +16,25 @@ public class RedisData {
     private String value;
     private Integer ttl;
 
-    public RedisData() {
+    public RedisDataWithName() {
     }
 
-    public RedisData(int db, int redisType, String key, String field, String value, Integer ttl) {
+    public RedisDataWithName(String redisName, int db, int redisType, String key, String field, String value, Integer ttl) {
+        this.redisName = redisName;
         this.db = db;
         this.redisType = redisType;
         this.key = key;
         this.field = field;
         this.value = value;
         this.ttl = ttl;
+    }
+
+    public String getRedisName() {
+        return redisName;
+    }
+
+    public void setRedisName(String redisName) {
+        this.redisName = redisName;
     }
 
     public int getDb() {
@@ -76,8 +86,9 @@ public class RedisData {
 
     @Override
     public String toString() {
-        return "RedisData{" +
-                "db=" + db +
+        return "RedisDataWithName{" +
+                "redisName='" + redisName + '\'' +
+                ", db=" + db +
                 ", redisType=" + redisType +
                 ", key='" + key + '\'' +
                 ", field='" + field + '\'' +

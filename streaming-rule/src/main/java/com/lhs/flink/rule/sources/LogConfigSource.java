@@ -3,6 +3,7 @@ package com.lhs.flink.rule.sources;
 import com.lhs.flink.rule.dao.LogConfigMapper;
 import com.lhs.flink.rule.dao.MybatisSessionFactory;
 import com.lhs.flink.rule.pojo.LogConfig;
+import com.lhs.flink.rule.pojo.RedisConfig;
 import com.lhs.flink.rule.utils.LogConfigUtils;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.source.RichSourceFunction;
@@ -47,6 +48,9 @@ public class LogConfigSource extends RichSourceFunction<Map<String,String>> {
                 List<LogConfig> logConfigs = mapper.queryLogConfig();
                 Map<String, String> map = new HashMap<>();
 
+                List<RedisConfig> redisConfigList = mapper.queryRedisConfig();
+
+                map.put("redis_config", LogConfigUtils.serializeRedisConfigs(redisConfigList));
                 map.put("log_process_config", LogConfigUtils.serializeConfigs(logConfigs));
 
                 sourceContext.collect(map);
