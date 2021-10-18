@@ -1,0 +1,3 @@
+com.lhs.flink.example.java.sql.formats.binlog.LogRowFormatFactory
+com.lhs.flink.example.java.sql.p1_sources_sinks.redis.factory.RedisStreamTableFactory
+com.lhs.flink.example.java.sql.p1_sources_sinks.print.PrintStreamTableFactory
