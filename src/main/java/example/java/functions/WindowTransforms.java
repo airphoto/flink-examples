@@ -1,8 +1,7 @@
 package example.java.functions;
 
-import com.lhs.flink.example.java.functions.watermark.MyAssingTimestampAndWatermarks;
-import com.lhs.flink.example.java.functions.windows.ShowWindowFunction;
-import com.lhs.flink.example.java.state.p2_watermark.MyAssignerWithPunctuatedWatermarks;
+import example.java.functions.watermark.MyAssingTimestampAndWatermarks;
+import example.java.functions.windows.ShowWindowFunction;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.TypeHint;

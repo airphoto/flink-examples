@@ -28,20 +28,20 @@ public class StateQueryClientMain {
 
         QueryableStateClient client = new QueryableStateClient("127.0.0.1",9069);
 
-        ValueStateDescriptor<Tuple2<String,Long>> stateDescriptor =
-                new ValueStateDescriptor<Tuple2<String, Long>>(
-                        "Lstate-query",
-                        TypeInformation.of(new TypeHint<Tuple2<String,Long>>() {})
+        ValueStateDescriptor<Long> stateDescriptor =
+                new ValueStateDescriptor<Long>(
+                        "state-query",
+                        TypeInformation.of(new TypeHint<Long>() {})
                 );
 
-        final JobID jobid = JobID.fromHexString("976022d02f00411245b575c3c6091955");
+        final JobID jobid = JobID.fromHexString("fc636906c35b1b7932dbaa02952347cb");
 
         while (true){
-            CompletableFuture<ValueState<Tuple2<String,Long>>> completableFuture =
+            CompletableFuture<ValueState<Long>> completableFuture =
                     client.getKvState(
                             jobid,
-                            "query-state",
-                            "d",
+                            "window_count_state",
+                            "word",
                             BasicTypeInfo.STRING_TYPE_INFO,
                             stateDescriptor
                     );

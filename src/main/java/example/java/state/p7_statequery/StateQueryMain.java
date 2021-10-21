@@ -22,7 +22,7 @@ public class StateQueryMain {
 
         environment.enableCheckpointing(2000);
 
-        FsStateBackend fsStateBackend = new FsStateBackend("file:///D:\\tmp\\flink\\statequery");
+        FsStateBackend fsStateBackend = new FsStateBackend("file:///checkpoint_p7");
         environment.setStateBackend(fsStateBackend);
 
         environment.getCheckpointConfig().enableExternalizedCheckpoints(CheckpointConfig.ExternalizedCheckpointCleanup.RETAIN_ON_CANCELLATION);
@@ -30,20 +30,20 @@ public class StateQueryMain {
 
         Properties properties = new Properties();
         properties.setProperty("bootstrap.servers","localhost:9092");
-        properties.setProperty("group.id","state_query");
+        properties.setProperty("group.id","p7_group");
 
-        FlinkKafkaConsumer010 source = new FlinkKafkaConsumer010("flink",new SimpleStringSchema(),properties);
+        FlinkKafkaConsumer010<String> source = new FlinkKafkaConsumer010<>("topic_2_partitions",new SimpleStringSchema(),properties);
 
         DataStream<String> stream = environment.addSource(source);
 
         SingleOutputStreamOperator<Tuple2<String,Long>> mapData = stream.map((String str)->{
-            return new Tuple2<>(str,2L);
+            return new Tuple2<>(str,1L);
         }).returns(new TypeHint<Tuple2<String, Long>>() {});
 
 
 
         mapData.keyBy(0)
-                   .map(new com.lhs.flink.example.java.state.p7_statequery.QueryStateMapFunc())
+                   .map(new QueryStateMapFunc())
                    .print();
 
         environment.execute("exe");

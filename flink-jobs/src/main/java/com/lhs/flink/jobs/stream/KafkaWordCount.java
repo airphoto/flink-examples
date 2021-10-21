@@ -14,6 +14,11 @@ import org.apache.flink.util.Collector;
 
 import java.util.Properties;
 
+/**
+ * Kafka 统计的一个基本样例
+ *
+ *  统计5秒窗口的word次数
+ */
 public class KafkaWordCount {
     public static void main(String[] args) throws Exception {
         Configuration configuration = new Configuration();

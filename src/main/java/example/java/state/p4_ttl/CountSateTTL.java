@@ -21,18 +21,18 @@ import org.apache.flink.util.Collector;
  **/
 public class CountSateTTL extends RichFlatMapFunction<Tuple2<String,Long>, Tuple2<String,Long>> {
 
-    ValueState<Tuple2<String,Long>> sum ;
+    ValueState<Long> sum ;
 
     @Override
     public void flatMap(Tuple2<String, Long> stringLongTuple2, Collector<Tuple2<String, Long>> collector) throws Exception {
 
-        Tuple2<String,Long> current = sum.value();
+        Long current = sum.value();
 
         if(current!=null){
-            sum.update(new Tuple2<>(current.f0,current.f1+stringLongTuple2.f1));
-            collector.collect(new Tuple2<>(current.f0,sum.value().f1));
+            sum.update(current+stringLongTuple2.f1);
+            collector.collect(new Tuple2<>(stringLongTuple2.f0,sum.value()));
         }else{
-            sum.update(stringLongTuple2);
+            sum.update(stringLongTuple2.f1);
             collector.collect(stringLongTuple2);
         }
 
@@ -41,10 +41,10 @@ public class CountSateTTL extends RichFlatMapFunction<Tuple2<String,Long>, Tuple
 
     @Override
     public void open(Configuration parameters) throws Exception {
-        ValueStateDescriptor<Tuple2<String,Long>> descriptor =
-                new ValueStateDescriptor<Tuple2<String, Long>>(
+        ValueStateDescriptor<Long> descriptor =
+                new ValueStateDescriptor<>(
                         "text state",
-                        TypeInformation.of(new TypeHint<Tuple2<String, Long>>() {})
+                        TypeInformation.of(new TypeHint<Long>() {})
                 );
 
         // 配置状态保留的时间长度

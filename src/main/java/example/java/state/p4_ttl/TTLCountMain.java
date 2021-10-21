@@ -1,6 +1,6 @@
 package example.java.state.p4_ttl;
 
-import com.lhs.flink.example.java.state.sink.RedisSinkInstance2;
+import example.java.state.sink.RedisSinkInstance2;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -27,31 +27,30 @@ public class TTLCountMain {
 
         env.enableCheckpointing(2000);
 
-        FsStateBackend fsStateBackend = new FsStateBackend("file:///E:\\idea\\git\\flink\\checkpoint", false);
+        FsStateBackend fsStateBackend = new FsStateBackend("file:///checkpoint_p4", false);
 
         env.setStateBackend(fsStateBackend);
 
         // kafka需要的最低配置参数
         Properties properties = new Properties();
         properties.setProperty("bootstrap.servers","localhost:9092");
-        properties.setProperty("group.id","flink_group");
+        properties.setProperty("group.id","p4_group");
 
-        FlinkKafkaConsumer010<String> source = new FlinkKafkaConsumer010<String>("canal", new SimpleStringSchema(),properties);
+        FlinkKafkaConsumer010<String> source = new FlinkKafkaConsumer010<String>("topic_2_partitions", new SimpleStringSchema(),properties);
 
         DataStream<String> stream = env.addSource(source);
 
-        SingleOutputStreamOperator<Tuple2<String, Long>> tuple2SingleOutputStreamOperator = stream.map(new MapFunction<String, Tuple2<String, Long>>() {
+        SingleOutputStreamOperator<Tuple2<String, Long>> mapData = stream.map(new MapFunction<String, Tuple2<String, Long>>() {
             @Override
             public Tuple2<String, Long> map(String s) throws Exception {
                 return new Tuple2<>(s, 1L);
             }
-        })
-                .keyBy(0)
-                .flatMap(new CountSateTTL());
+        });
 
-//        tuple2SingleOutputStreamOperator.addSink(new WriteSinkInstance<>());
-        tuple2SingleOutputStreamOperator.addSink(new RedisSinkInstance2());
-//        tuple2SingleOutputStreamOperator.print();
+        mapData.keyBy(0)
+                .flatMap(new CountSateTTL())
+                .print();
+
 
         env.execute("state count");
     }

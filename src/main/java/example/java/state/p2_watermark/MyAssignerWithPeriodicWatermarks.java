@@ -22,6 +22,10 @@ import java.text.SimpleDateFormat;
  * 通过调用 自定义的  getCurrentWatermark() 方法 ，
  * 如果返回的watermark非空并且大于前一个watermark，就会发出一个新的watermark
  *
+ * watermark的意义
+ * 1：watermark之前的数据已经全部到达了
+ * 2：当watermark到达窗口的触发时间时候才触发窗口
+ * 3：watermark是一种延迟触发的机制
  * @author lihuasong
  * @description 描述
  * @create 2019/8/6
@@ -68,7 +72,7 @@ public class MyAssignerWithPeriodicWatermarks implements AssignerWithPeriodicWat
     public long extractTimestamp(Tuple2<String, Long> kv, long l) {
         Long eventTime = kv.f1;
         currentMaxTimestamp = Math.max(eventTime,currentMaxTimestamp);
-        System.out.println("event_timestamp ["+kv+"|"+format.format(kv.f1)+"], current:["+currentMaxTimestamp+"|"+format.format(currentMaxTimestamp)+"],watermark:["+watermark.toString()+"]");
+        System.out.println("event_timestamp ["+kv+"|"+format.format(kv.f1)+"], current:["+currentMaxTimestamp+"|"+format.format(currentMaxTimestamp)+"],watermark:["+watermark.getTimestamp()+"|"+format.format(watermark.getTimestamp())+"]");
         return eventTime;
     }
 }

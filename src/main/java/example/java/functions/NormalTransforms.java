@@ -1,6 +1,5 @@
 package example.java.functions;
 
-import com.lhs.flink.example.java.functions.pojo.WordCase;
 import org.apache.flink.api.common.functions.FilterFunction;
 import org.apache.flink.api.common.functions.FlatMapFunction;
 import org.apache.flink.api.common.functions.MapFunction;

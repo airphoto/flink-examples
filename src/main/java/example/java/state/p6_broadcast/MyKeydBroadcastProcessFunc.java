@@ -1,6 +1,6 @@
 package example.java.state.p6_broadcast;
 
-import com.lhs.flink.example.java.state.pojo.JobConfig;
+import example.java.state.pojo.JobConfig;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.functions.co.KeyedBroadcastProcessFunction;
 import org.apache.flink.util.Collector;

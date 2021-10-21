@@ -1,6 +1,6 @@
 package example.java.state.p6_broadcast;
 
-import com.lhs.flink.example.java.state.pojo.JobConfig;
+import example.java.state.pojo.JobConfig;
 import org.apache.flink.streaming.api.functions.co.BroadcastProcessFunction;
 import org.apache.flink.util.Collector;
 
@@ -13,7 +13,7 @@ import java.util.Map;
  **/
 public class MyBroadcastProcessFunc extends BroadcastProcessFunction<String,Map<String,JobConfig>,String> {
 
-    private  JobConfig jobConfig;
+    private JobConfig jobConfig;
 
     @Override
     public void processElement(String s, ReadOnlyContext readOnlyContext, Collector<String> collector) throws Exception {

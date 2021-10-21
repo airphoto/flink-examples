@@ -1,6 +1,6 @@
 package example.java.state.p6_broadcast;
 
-import com.lhs.flink.example.java.state.pojo.JobConfig;
+import example.java.state.pojo.JobConfig;
 import org.apache.flink.api.common.functions.MapFunction;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.state.MapStateDescriptor;

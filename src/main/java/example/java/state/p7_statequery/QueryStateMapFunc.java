@@ -13,25 +13,23 @@ import org.apache.flink.configuration.Configuration;
  */
 public class QueryStateMapFunc extends RichMapFunction<Tuple2<String,Long>,Tuple2<String,Long>> {
 
-    private transient ValueState<Tuple2<String,Long>> sum;
+    private transient ValueState<Long> sum;
 
     @Override
     public Tuple2<String, Long> map(Tuple2<String, Long> stringLongTuple2) throws Exception {
-        Tuple2<String,Long> current = sum.value();
-        sum.update(new Tuple2<>(stringLongTuple2.f0,current.f1+stringLongTuple2.f1));
-        return sum.value();
+        Long current = sum.value();
+        sum.update(current+stringLongTuple2.f1);
+        return new Tuple2<>(stringLongTuple2.f0,sum.value());
     }
 
     @Override
     public void open(Configuration parameters) throws Exception {
         super.open(parameters);
-        ValueStateDescriptor<Tuple2<String,Long>> descriptor = new ValueStateDescriptor<>(
+        ValueStateDescriptor<Long> descriptor = new ValueStateDescriptor<>(
                 "query-state-map-func",
-                TypeInformation.of(new TypeHint<Tuple2<String, Long>>() {}),
-                Tuple2.of("",0L)
-        );
+                TypeInformation.of(new TypeHint<Long>() {}));
 
-        descriptor.setQueryable("query-state");
+        descriptor.setQueryable("query_state_name");
         sum = getRuntimeContext().getState(descriptor);
     }
 }

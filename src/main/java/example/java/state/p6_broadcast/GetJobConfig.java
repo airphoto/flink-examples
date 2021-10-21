@@ -1,6 +1,6 @@
 package example.java.state.p6_broadcast;
 
-import com.lhs.flink.example.java.state.pojo.JobConfig;
+import example.java.state.pojo.JobConfig;
 import org.apache.flink.streaming.api.functions.source.RichSourceFunction;
 import redis.clients.jedis.Jedis;
 
@@ -12,7 +12,7 @@ import java.util.Map;
  * @description 描述
  * @create 2020/4/15
  **/
-public class GetJobConfig extends RichSourceFunction<Map<String,JobConfig>> {
+public class GetJobConfig extends RichSourceFunction<Map<String, JobConfig>> {
 
     private boolean running = true;
 
