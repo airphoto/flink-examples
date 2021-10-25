@@ -29,13 +29,14 @@ public class LogProducer {
 
         KafkaProducer<String, String> producer = new KafkaProducer<String, String>(props);
 
-        String topic = "topic_2_partitions"; //消息所属的 Topic，请在控制台申请之后，填写在这里
+        String topic = "topic_2_partitions"; //消息所属的 Topic1,login,1634819159353，请在控制台申请之后，填写在这里
 
         while (true){
             String datap8=System.currentTimeMillis()+",word,1";
 //            String datap2="word,"+System.currentTimeMillis();
             String datap4="word";
-            ProducerRecord<String, String> data = new ProducerRecord<String, String>(topic, datap8);
+            String cepp1 = "1,login,"+System.currentTimeMillis();
+            ProducerRecord<String, String> data = new ProducerRecord<String, String>(topic, cepp1);
 
             try {
                 producer.send(data);
