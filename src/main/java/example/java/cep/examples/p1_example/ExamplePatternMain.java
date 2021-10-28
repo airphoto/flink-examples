@@ -1,4 +1,4 @@
-package example.java.cep.p1_example;
+package example.java.cep.examples.p1_example;
 
 import com.alibaba.fastjson.JSON;
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
@@ -9,7 +9,6 @@ import org.apache.flink.cep.nfa.aftermatch.AfterMatchSkipStrategy;
 import org.apache.flink.cep.nfa.aftermatch.SkipPastLastStrategy;
 import org.apache.flink.cep.pattern.Pattern;
 import org.apache.flink.cep.pattern.conditions.IterativeCondition;
-import org.apache.flink.cep.pattern.conditions.SimpleCondition;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.TimeCharacteristic;
 import org.apache.flink.streaming.api.datastream.DataStream;

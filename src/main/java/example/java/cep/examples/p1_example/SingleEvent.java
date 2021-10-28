@@ -1,4 +1,4 @@
-package example.java.cep.p1_example;
+package example.java.cep.examples.p1_example;
 
 import java.util.Objects;
 
